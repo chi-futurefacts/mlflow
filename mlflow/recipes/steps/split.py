@@ -9,6 +9,8 @@ import pandas as pd
 from enum import Enum
 from multiprocessing.pool import ThreadPool, Pool
 
+from sktime.forecasting.model_selection import temporal_train_test_split
+
 from mlflow.recipes.artifacts import DataframeArtifact
 from mlflow.recipes.cards import BaseCard
 from mlflow.recipes.step import BaseStep
@@ -60,6 +62,17 @@ def _run_split(task, input_df, split_ratios, target_col):
         return _perform_stratified_split_per_class(input_df, split_ratios, target_col)
     elif task == "regression":
         return _perform_split(input_df, split_ratios)
+    elif task == "timeseries":
+        return _perform_timeseries_split(input_df, split_ratios)
+
+def _perform_timeseries_split(input_df, split_ratios):
+    train_ratio, validation_ratio, test_ratio = split_ratios
+    if validation_ratio != 0:
+        raise ValueError("validation ratio must be set to 0 in timeseries split")
+
+    train_df, test_df = temporal_train_test_split(y=input_df, train_size=train_ratio, test_size=test_ratio)
+    validation_df = pd.DataFrame(columns=train_df.columns)
+    return train_df, validation_df, test_df
 
 
 def _perform_stratified_split_per_class(input_df, split_ratios, target_col):
